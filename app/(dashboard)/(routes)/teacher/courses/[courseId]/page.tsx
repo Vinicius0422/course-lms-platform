@@ -11,6 +11,7 @@ import { ImageForm } from "./_components/image-form";
 import { CategoryForm } from "./_components/category-form";
 import { PriceForm } from "./_components/price-form";
 import { AttachmentForm } from "./_components/attachment-form";
+import { ChapterForm } from "./_components/chapters-form";
 
 const CourseIdPage = async ({ params } : {
     params: {
@@ -18,7 +19,7 @@ const CourseIdPage = async ({ params } : {
     }
 }) => {
 
-    const userId = auth();
+    const { userId } = await auth();
 
     if(!userId){
         return redirect("/");
@@ -26,16 +27,24 @@ const CourseIdPage = async ({ params } : {
 
     const course = await db.course.findUnique({
         where: {
-            id: params.courseId
+            id: params.courseId,
+            userId
         },
         include: {
             attachments: {
                 orderBy: {
                     createdAt: "desc"
                 }
+            },
+            chapters: {
+                orderBy: {
+                    position: "asc"
+                }
             }
         }
     })
+
+    console.log(course)
 
     const categories = await db.category.findMany({
         orderBy: {
@@ -54,7 +63,8 @@ const CourseIdPage = async ({ params } : {
         course.description,
         course.imageUrl,
         course.price,
-        course.categoryId
+        course.categoryId,
+        course.chapters.some(chapter => chapter.isPublished)
     ]
 
     const totalFields = requiredFields.length;
@@ -107,9 +117,9 @@ const CourseIdPage = async ({ params } : {
                                 Course chapters
                             </h2>
                         </div>
-                        <div>
-                            TODO: Chapters
-                        </div>
+                        <ChapterForm
+                        initialData={course}
+                        courseId={course.id}/>
                     </div>
                     <div>
                         <div className="flex items-center gap-x-2">
